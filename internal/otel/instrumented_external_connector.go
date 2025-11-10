@@ -6,6 +6,7 @@ package otel
 
 import (
 	"context"
+	"path"
 	"reflect"
 
 	"github.com/angelokurtis/go-otel/span"
@@ -31,16 +32,17 @@ func NewInstrumentedExternalConnector(base ExternalConnector) InstrumentedExtern
 // Connect implements ExternalConnector
 func (_d InstrumentedExternalConnector) Connect(ctx context.Context, mg resource.Managed) (e1 managed.ExternalClient, err error) {
 	t := reflect.TypeOf(_d.ExternalConnector)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Connect"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
