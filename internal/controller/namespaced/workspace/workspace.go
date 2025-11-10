@@ -39,6 +39,7 @@ import (
 	"github.com/upbound/provider-opentofu/internal/clients"
 	"github.com/upbound/provider-opentofu/internal/features"
 	"github.com/upbound/provider-opentofu/internal/opentofu"
+	"github.com/upbound/provider-opentofu/internal/otel"
 	"github.com/upbound/provider-opentofu/internal/workdir"
 )
 
@@ -323,7 +324,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		}
 		if cr.Status.AtProvider.Checksum == checksum {
 			l.Debug("Checksums match - skip running tofu init")
-			return &external{tofu: tofu, kube: c.kube, logger: c.logger}, errors.Wrap(tofu.Workspace(ctx, meta.GetExternalName(cr)), errWorkspace)
+			return otel.NewInstrumentedExternalClient(&external{tofu: tofu, kube: c.kube, logger: c.logger}), errors.Wrap(tofu.Workspace(ctx, meta.GetExternalName(cr)), errWorkspace)
 		}
 		l.Debug("Checksums don't match so run tofu init:", "old", cr.Status.AtProvider.Checksum, "new", checksum)
 	}
@@ -336,7 +337,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	if err := tofu.Init(ctx, o...); err != nil {
 		return nil, errors.Wrap(err, errInit)
 	}
-	return &external{tofu: tofu, kube: c.kube}, errors.Wrap(tofu.Workspace(ctx, meta.GetExternalName(cr)), errWorkspace)
+	return otel.NewInstrumentedExternalClient(&external{tofu: tofu, kube: c.kube}), errors.Wrap(tofu.Workspace(ctx, meta.GetExternalName(cr)), errWorkspace)
 }
 
 type external struct {
