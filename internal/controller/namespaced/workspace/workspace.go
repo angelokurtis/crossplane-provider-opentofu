@@ -143,9 +143,9 @@ func Setup(mgr ctrl.Manager, o controller.Options, timeout, pollJitter time.Dura
 		return err
 	}
 
-	r := managed.NewReconciler(mgr,
+	r := otel.NewInstrumentedReconciler(managed.NewReconciler(mgr,
 		resource.ManagedKind(v1beta1.WorkspaceGroupVersionKind),
-		opts...)
+		opts...))
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).

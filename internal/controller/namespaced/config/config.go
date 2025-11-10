@@ -18,6 +18,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/v2/pkg/resource"
 
 	"github.com/upbound/provider-opentofu/apis/namespaced/v1beta1"
+	"github.com/upbound/provider-opentofu/internal/otel"
 )
 
 // Setup adds a controller that reconciles ProviderConfigs by accounting for
@@ -31,9 +32,9 @@ func Setup(mgr ctrl.Manager, o controller.Options, timeout time.Duration, pollJi
 		UsageList: v1beta1.ProviderConfigUsageListGroupVersionKind,
 	}
 
-	r := providerconfig.NewReconciler(mgr, of,
+	r := otel.NewInstrumentedReconciler(providerconfig.NewReconciler(mgr, of,
 		providerconfig.WithLogger(o.Logger.WithValues("controller", name)),
-		providerconfig.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))))
+		providerconfig.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name)))))
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
