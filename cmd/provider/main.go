@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/angelokurtis/go-otel/starter"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/errors"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/feature"
@@ -73,6 +74,17 @@ func main() {
 	// https://github.com/kubernetes-sigs/controller-runtime/pull/2317
 	ctrl.SetLogger(zl)
 
+	ctx := context.Background()
+	_, shutdown, err := starter.StartProviders(ctx,
+		starter.WithServiceName("provider-opentofu"),
+		starter.WithTracesExporter("otlp"),
+		starter.WithMetricsExporter("none"),
+		starter.WithLogsExporter("none"),
+	)
+	kingpin.FatalIfError(err, "OpenTelemetry initialization failed")
+
+	defer shutdown()
+
 	log.Debug("Starting",
 		"sync-period", syncInterval.String(),
 		"poll-interval", pollInterval.String(),
@@ -112,7 +124,6 @@ func main() {
 	metrics.Registry.MustRegister(metricRecorder)
 	metrics.Registry.MustRegister(stateMetrics)
 
-	ctx := context.Background()
 	clusterOpts := controller.Options{
 		Logger:                  log,
 		MaxConcurrentReconciles: *maxReconcileRate,
