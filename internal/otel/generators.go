@@ -16,4 +16,10 @@
 // Generate a wrapper for OpenTofuClient with OpenTelemetry instrumentation.
 //go:generate go run github.com/hexdigest/gowrap/cmd/gowrap@v1.4.3 gen -g -p "github.com/upbound/provider-opentofu/internal/otel" -i "OpenTofuClient" -t "opentelemetry.gotmpl" -o "instrumented_opentofu_client.go"
 
+// Generate the Reconciler interface from the 'Reconciler' struct in the reconciler.go file.
+//go:generate go run github.com/vburenin/ifacemaker@v1.3.0 -f "$GOMODCACHE/github.com/crossplane/crossplane-runtime/v2@v2.0.0/pkg/reconciler/managed/reconciler.go" -s "Reconciler" -i "Reconciler" -y "Reconciler defines an interface for Kubernetes controllers that reconcile resources." -p "otel" -d "false" -o "reconciler.go"
+
+// Generate an OpenTelemetry-instrumented wrapper for the Reconciler interface.
+//go:generate go run github.com/hexdigest/gowrap/cmd/gowrap@v1.4.3 gen -g -p "github.com/upbound/provider-opentofu/internal/otel" -i "Reconciler" -t "opentelemetry.gotmpl" -o "instrumented_reconciler.go"
+
 package otel
