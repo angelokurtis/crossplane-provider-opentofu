@@ -4,10 +4,6 @@ go 1.25.8
 
 tool golang.org/x/tools/cmd/goimports
 
-replace (
-	github.com/crossplane/crossplane-runtime/v2 v2.0.0 => ../../crossplane/crossplane-runtime
-)
-
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/alecthomas/kingpin/v2 v2.4.0
