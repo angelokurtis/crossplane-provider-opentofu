@@ -5,6 +5,7 @@ go 1.24.6
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/alecthomas/kingpin/v2 v2.4.0
+	github.com/angelokurtis/go-otel/span v1.2.8
 	github.com/angelokurtis/go-otel/starter v1.2.8
 	github.com/crossplane/crossplane-runtime/v2 v2.0.0
 	github.com/crossplane/crossplane-tools v0.0.0-20250731192036-00d407d8b7ec
@@ -13,6 +14,7 @@ require (
 	github.com/hashicorp/go-getter v1.7.9
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/afero v1.14.0
+	go.opentelemetry.io/otel v1.38.0
 	go.uber.org/zap v1.27.0
 	k8s.io/api v0.33.0
 	k8s.io/apiextensions-apiserver v0.33.0
@@ -95,7 +97,6 @@ require (
 	go.opentelemetry.io/contrib/propagators/b3 v1.38.0 // indirect
 	go.opentelemetry.io/contrib/propagators/jaeger v1.38.0 // indirect
 	go.opentelemetry.io/contrib/propagators/ot v1.38.0 // indirect
-	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.14.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.14.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.38.0 // indirect
