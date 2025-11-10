@@ -1,0 +1,57 @@
+import (
+    "context"
+	"reflect"
+
+    "github.com/angelokurtis/go-otel/span"
+	"go.opentelemetry.io/otel/attribute"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+)
+
+{{ $decorator := (or .Vars.DecoratorName (printf "Instrumented%s" .Interface.Name)) }}
+{{ $spanNameType := (or .Vars.SpanNamePrefix .Interface.Name) }}
+
+// {{$decorator}} implements {{.Interface.Name}} interface instrumented with open telemetry spans
+type {{$decorator}} struct {
+  {{.Interface.Type}}
+}
+
+// New{{$decorator}} returns {{$decorator}}
+func New{{$decorator}} (base {{.Interface.Type}}) {{$decorator}} {
+  return {{$decorator}} {
+    {{.Interface.Name}}: base,
+  }
+}
+
+{{range $method := .Interface.Methods}}
+  {{if $method.AcceptsContext}}
+    // {{$method.Name}} implements {{$.Interface.Name}}
+func (_d {{$decorator}}) {{$method.Declaration}} {
+  t := reflect.TypeOf(_d.{{$spanNameType}})
+  var pkgPath, typeName string
+  if t != nil {
+      if t.Kind() == reflect.Ptr {
+          t = t.Elem() // Dereference pointer to get underlying type
+      }
+      pkgPath = t.PkgPath()
+      typeName = t.Name()
+  }
+  methodName := "{{$method.Name}}"
+  spanName := pkgPath + "." + typeName + "." + methodName
+  ctx, end := span.StartWithName(ctx, spanName)
+  {{- if $method.ReturnsError}}
+  defer func() {
+  	_ = span.Error(ctx, err)
+  	end()
+  }()
+  {{else}}
+  defer end()
+  {{end}}
+  span.Attributes(ctx,
+  	semconv.CodeNamespace(pkgPath),
+  	semconv.CodeFunctionName(methodName),
+  	attribute.Key("code.type").String(typeName),
+  )
+  {{$method.Pass (printf "_d.%s." $.Interface.Name) }}
+}
+  {{end}}
+{{end}}
