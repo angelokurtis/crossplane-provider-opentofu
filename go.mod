@@ -2,6 +2,10 @@ module github.com/upbound/provider-opentofu
 
 go 1.24.6
 
+replace (
+	github.com/crossplane/crossplane-runtime/v2 v2.0.0 => ../../crossplane/crossplane-runtime
+)
+
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/alecthomas/kingpin/v2 v2.4.0
