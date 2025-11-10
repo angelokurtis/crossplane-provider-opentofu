@@ -120,7 +120,7 @@ func Setup(mgr ctrl.Manager, o controller.Options, timeout, pollJitter time.Dura
 		logger: o.Logger,
 		fs:     fs,
 		tofu: func(dir string, usePluginCache bool, enableTofuCLILogging bool, logger logging.Logger, envs ...string) tofuclient {
-			return opentofu.Harness{Path: tofuPath, Dir: dir, UsePluginCache: usePluginCache, EnableTofuCLILogging: enableTofuCLILogging, Logger: logger, Envs: envs}
+			return otel.NewInstrumentedOpenTofuClient(opentofu.Harness{Path: tofuPath, Dir: dir, UsePluginCache: usePluginCache, EnableTofuCLILogging: enableTofuCLILogging, Logger: logger, Envs: envs})
 		},
 	}
 
