@@ -6,6 +6,7 @@ package otel
 
 import (
 	"context"
+	"path"
 	"reflect"
 
 	"github.com/angelokurtis/go-otel/span"
@@ -30,16 +31,17 @@ func NewInstrumentedReconciler(base Reconciler) InstrumentedReconciler {
 // Reconcile implements Reconciler
 func (_d InstrumentedReconciler) Reconcile(ctx context.Context, req reconcile.Request) (result reconcile.Result, err error) {
 	t := reflect.TypeOf(_d.Reconciler)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Reconcile"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)

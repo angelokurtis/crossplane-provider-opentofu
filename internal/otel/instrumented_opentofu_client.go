@@ -6,6 +6,7 @@ package otel
 
 import (
 	"context"
+	"path"
 	"reflect"
 
 	"github.com/angelokurtis/go-otel/span"
@@ -31,16 +32,17 @@ func NewInstrumentedOpenTofuClient(base OpenTofuClient) InstrumentedOpenTofuClie
 // Apply implements OpenTofuClient
 func (_d InstrumentedOpenTofuClient) Apply(ctx context.Context, o ...Option) (err error) {
 	t := reflect.TypeOf(_d.OpenTofuClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Apply"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -58,16 +60,17 @@ func (_d InstrumentedOpenTofuClient) Apply(ctx context.Context, o ...Option) (er
 // DeleteCurrentWorkspace implements OpenTofuClient
 func (_d InstrumentedOpenTofuClient) DeleteCurrentWorkspace(ctx context.Context) (err error) {
 	t := reflect.TypeOf(_d.OpenTofuClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "DeleteCurrentWorkspace"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -85,16 +88,17 @@ func (_d InstrumentedOpenTofuClient) DeleteCurrentWorkspace(ctx context.Context)
 // Destroy implements OpenTofuClient
 func (_d InstrumentedOpenTofuClient) Destroy(ctx context.Context, o ...Option) (err error) {
 	t := reflect.TypeOf(_d.OpenTofuClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Destroy"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -112,16 +116,17 @@ func (_d InstrumentedOpenTofuClient) Destroy(ctx context.Context, o ...Option) (
 // Diff implements OpenTofuClient
 func (_d InstrumentedOpenTofuClient) Diff(ctx context.Context, o ...Option) (b1 bool, err error) {
 	t := reflect.TypeOf(_d.OpenTofuClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Diff"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -139,16 +144,17 @@ func (_d InstrumentedOpenTofuClient) Diff(ctx context.Context, o ...Option) (b1 
 // GenerateChecksum implements OpenTofuClient
 func (_d InstrumentedOpenTofuClient) GenerateChecksum(ctx context.Context) (s1 string, err error) {
 	t := reflect.TypeOf(_d.OpenTofuClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "GenerateChecksum"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -166,16 +172,17 @@ func (_d InstrumentedOpenTofuClient) GenerateChecksum(ctx context.Context) (s1 s
 // Init implements OpenTofuClient
 func (_d InstrumentedOpenTofuClient) Init(ctx context.Context, o ...InitOption) (err error) {
 	t := reflect.TypeOf(_d.OpenTofuClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Init"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -193,16 +200,17 @@ func (_d InstrumentedOpenTofuClient) Init(ctx context.Context, o ...InitOption) 
 // Outputs implements OpenTofuClient
 func (_d InstrumentedOpenTofuClient) Outputs(ctx context.Context) (oa1 []opentofu.Output, err error) {
 	t := reflect.TypeOf(_d.OpenTofuClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Outputs"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -220,16 +228,17 @@ func (_d InstrumentedOpenTofuClient) Outputs(ctx context.Context) (oa1 []opentof
 // Resources implements OpenTofuClient
 func (_d InstrumentedOpenTofuClient) Resources(ctx context.Context) (sa1 []string, err error) {
 	t := reflect.TypeOf(_d.OpenTofuClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Resources"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -247,16 +256,17 @@ func (_d InstrumentedOpenTofuClient) Resources(ctx context.Context) (sa1 []strin
 // Validate implements OpenTofuClient
 func (_d InstrumentedOpenTofuClient) Validate(ctx context.Context) (err error) {
 	t := reflect.TypeOf(_d.OpenTofuClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Validate"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -274,16 +284,17 @@ func (_d InstrumentedOpenTofuClient) Validate(ctx context.Context) (err error) {
 // Workspace implements OpenTofuClient
 func (_d InstrumentedOpenTofuClient) Workspace(ctx context.Context, name string) (err error) {
 	t := reflect.TypeOf(_d.OpenTofuClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Workspace"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)

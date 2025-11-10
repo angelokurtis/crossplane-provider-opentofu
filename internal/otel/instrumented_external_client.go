@@ -6,6 +6,7 @@ package otel
 
 import (
 	"context"
+	"path"
 	"reflect"
 
 	"github.com/angelokurtis/go-otel/span"
@@ -31,16 +32,17 @@ func NewInstrumentedExternalClient(base ExternalClient) InstrumentedExternalClie
 // Create implements ExternalClient
 func (_d InstrumentedExternalClient) Create(ctx context.Context, mg resource.Managed) (e1 managed.ExternalCreation, err error) {
 	t := reflect.TypeOf(_d.ExternalClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Create"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -58,16 +60,17 @@ func (_d InstrumentedExternalClient) Create(ctx context.Context, mg resource.Man
 // Delete implements ExternalClient
 func (_d InstrumentedExternalClient) Delete(ctx context.Context, mg resource.Managed) (e1 managed.ExternalDelete, err error) {
 	t := reflect.TypeOf(_d.ExternalClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Delete"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -85,16 +88,17 @@ func (_d InstrumentedExternalClient) Delete(ctx context.Context, mg resource.Man
 // Disconnect implements ExternalClient
 func (_d InstrumentedExternalClient) Disconnect(ctx context.Context) (err error) {
 	t := reflect.TypeOf(_d.ExternalClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Disconnect"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -112,16 +116,17 @@ func (_d InstrumentedExternalClient) Disconnect(ctx context.Context) (err error)
 // Observe implements ExternalClient
 func (_d InstrumentedExternalClient) Observe(ctx context.Context, mg resource.Managed) (e1 managed.ExternalObservation, err error) {
 	t := reflect.TypeOf(_d.ExternalClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Observe"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
@@ -139,16 +144,17 @@ func (_d InstrumentedExternalClient) Observe(ctx context.Context, mg resource.Ma
 // Update implements ExternalClient
 func (_d InstrumentedExternalClient) Update(ctx context.Context, mg resource.Managed) (e1 managed.ExternalUpdate, err error) {
 	t := reflect.TypeOf(_d.ExternalClient)
-	var pkgPath, typeName string
+	var pkgPath, pkgName, typeName string
 	if t != nil {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem() // Dereference pointer to get underlying type
 		}
 		pkgPath = t.PkgPath()
+		pkgName = path.Base(pkgPath)
 		typeName = t.Name()
 	}
 	methodName := "Update"
-	spanName := pkgPath + "." + typeName + "." + methodName
+	spanName := pkgName + "." + typeName + "." + methodName
 	ctx, end := span.StartWithName(ctx, spanName)
 	defer func() {
 		_ = span.Error(ctx, err)
