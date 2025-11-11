@@ -49,6 +49,8 @@ func (_d InstrumentedReconciler) Reconcile(ctx context.Context, req reconcile.Re
 	}()
 
 	span.Attributes(ctx,
+		attribute.String("k8s.namespace", req.Namespace),
+		attribute.String("k8s.name", req.Name),
 		semconv.CodeNamespace(pkgPath),
 		semconv.CodeFunctionName(methodName),
 		attribute.Key("code.type").String(typeName),
