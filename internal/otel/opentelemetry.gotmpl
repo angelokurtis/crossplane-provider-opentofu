@@ -48,6 +48,12 @@ func (_d {{$decorator}}) {{$method.Declaration}} {
   defer end()
   {{end}}
   span.Attributes(ctx,
+  {{- range $i, $param := $method.Params}}
+    {{- if and (eq $param.Type "reconcile.Request") (eq $param.Name "req")}}
+  	attribute.String("k8s.namespace", req.Namespace),
+  	attribute.String("k8s.name", req.Name),
+    {{- end}}
+  {{- end}}
   	semconv.CodeNamespace(pkgPath),
   	semconv.CodeFunctionName(methodName),
   	attribute.Key("code.type").String(typeName),
