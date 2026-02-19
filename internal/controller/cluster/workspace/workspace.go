@@ -225,18 +225,67 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		}
 	}
 
+	// Calculate the final tofu working directory (including entrypoint if specified)
+	// This is where tofu will actually run and create .terraform directory
+	tofuWorkDir := dir
+	if len(cr.Spec.ForProvider.Entrypoint) > 0 {
+		entrypoint := strings.ReplaceAll(cr.Spec.ForProvider.Entrypoint, "../", "")
+		tofuWorkDir = filepath.Join(dir, entrypoint)
+	}
+
 	switch cr.Spec.ForProvider.Source {
 	case v1beta1.ModuleSourceRemote:
-		gc := getter.Client{
-			Src: cr.Spec.ForProvider.Module,
-			Dst: dir,
-			Pwd: dir,
+		shouldPull := false
 
-			Mode: getter.ClientModeDir,
+		// Determine if we should pull the remote source
+		switch {
+		case cr.Spec.ForProvider.RemotePullPolicy == nil ||
+			*cr.Spec.ForProvider.RemotePullPolicy == v1beta1.RemotePullPolicyAlways:
+			// Always pull (default behavior)
+			shouldPull = true
+			l.Debug("Remote module pull policy: Always")
+
+		case *cr.Spec.ForProvider.RemotePullPolicy == v1beta1.RemotePullPolicyIfNotPresent:
+			// Check if .terraform.lock.hcl exists (indicates successful init)
+			// This file is created at the END of tofu init, making it the
+			// most reliable indicator that module initialization completed
+			lockFile := filepath.Join(tofuWorkDir, ".terraform.lock.hcl")
+			lockFileValid, err := validateTofuLockFile(c.fs, lockFile)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to validate tofu lock file")
+			}
+
+			if lockFileValid {
+				// Module already initialized - check if spec changed
+				if cr.Spec.ForProvider.Module != cr.Status.AtProvider.RemoteSource {
+					l.Debug("Remote module URL changed", "old", cr.Status.AtProvider.RemoteSource, "new", cr.Spec.ForProvider.Module)
+					shouldPull = true
+				} else {
+					l.Debug("Remote module already initialized, skipping download", "lockFile", lockFile)
+					shouldPull = false
+				}
+			} else {
+				l.Debug("Tofu not initialized, downloading module", "lockFile", lockFile)
+				shouldPull = true
+			}
 		}
-		err := gc.Get()
-		if err != nil {
-			return nil, errors.Wrap(err, errRemoteModule)
+
+		// Pull remote source if needed
+		if shouldPull {
+			gc := getter.Client{
+				Src:  cr.Spec.ForProvider.Module,
+				Dst:  dir,
+				Pwd:  dir,
+				Mode: getter.ClientModeDir,
+			}
+			err := gc.Get()
+			if err != nil {
+				return nil, errors.Wrap(err, errRemoteModule)
+			}
+
+			// Update status with downloaded module URL
+			cr.Status.AtProvider.RemoteSource = cr.Spec.ForProvider.Module
+			l.Debug("Remote module downloaded", "url", cr.Spec.ForProvider.Module)
 		}
 
 	case v1beta1.ModuleSourceInline:
@@ -389,13 +438,15 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if err != nil {
 		return managed.ExternalObservation{}, errors.Wrap(err, errOutputs)
 	}
-	cr.Status.AtProvider = generateWorkspaceObservation(op)
-
+	// Generate checksum first
 	checksum, err := c.tofu.GenerateChecksum(ctx)
 	if err != nil {
 		return managed.ExternalObservation{}, errors.Wrap(err, errChecksum)
 	}
-	cr.Status.AtProvider.Checksum = checksum
+
+	// Preserve remoteSource from previous status (set in Connect)
+	// Generate observation with all persistent fields
+	cr.Status.AtProvider = generateWorkspaceObservation(op, checksum, cr.Status.AtProvider.RemoteSource)
 
 	if !differs {
 		// TODO(negz): Allow Workspaces to optionally derive their readiness from an
@@ -438,7 +489,16 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	if err != nil {
 		return managed.ExternalUpdate{}, errors.Wrap(err, errOutputs)
 	}
-	cr.Status.AtProvider = generateWorkspaceObservation(op)
+
+	// Generate checksum after apply
+	checksum, err := c.tofu.GenerateChecksum(ctx)
+	if err != nil {
+		return managed.ExternalUpdate{}, errors.Wrap(err, errChecksum)
+	}
+
+	// Preserve remoteSource and update observation with checksum
+	cr.Status.AtProvider = generateWorkspaceObservation(op, checksum, cr.Status.AtProvider.RemoteSource)
+
 	// TODO(negz): Allow Workspaces to optionally derive their readiness from an
 	// output - similar to the logic XRs use to derive readiness from a field of
 	// a composed resource.
@@ -528,11 +588,38 @@ func op2cd(o []opentofu.Output) managed.ConnectionDetails {
 	return cd
 }
 
+// validateTofuLockFile checks if .terraform.lock.hcl exists and is valid.
+// This file is created at the END of successful tofu init, making it the
+// most reliable indicator that module initialization completed successfully.
+func validateTofuLockFile(fs afero.Afero, lockFilePath string) (bool, error) {
+	data, err := fs.ReadFile(lockFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil // File doesn't exist, not an error
+		}
+		return false, err // Read error
+	}
+
+	if len(data) == 0 {
+		return false, nil // Empty file (interrupted write)
+	}
+
+	// Basic validation: lock file should contain "provider" declarations
+	content := string(data)
+	if !strings.Contains(content, "provider") {
+		return false, nil // Doesn't look like a valid lock file
+	}
+
+	return true, nil
+}
+
 // generateWorkspaceObservation is used to produce v1beta1.WorkspaceObservation from
 // workspace_type.Workspace.
-func generateWorkspaceObservation(op []opentofu.Output) v1beta1.WorkspaceObservation {
+func generateWorkspaceObservation(op []opentofu.Output, checksum, remoteSource string) v1beta1.WorkspaceObservation {
 	wo := v1beta1.WorkspaceObservation{
-		Outputs: make(map[string]extensionsV1.JSON, len(op)),
+		Outputs:      make(map[string]extensionsV1.JSON, len(op)),
+		Checksum:     checksum,
+		RemoteSource: remoteSource,
 	}
 	for _, o := range op {
 		if !o.Sensitive {

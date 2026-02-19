@@ -10,6 +10,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/crossplane/crossplane-runtime/v2/pkg/logging"
@@ -701,6 +702,231 @@ func TestConnect(t *testing.T) {
 			},
 			want: nil,
 		},
+		"RemotePullPolicyIfNotPresentSkipsDownload": {
+			reason: "Remote module with IfNotPresent policy should skip download when .terraform.lock.hcl exists and URL unchanged",
+			fields: fields{
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(nil),
+				},
+				usage: clients.LegacyTrackerFn(func(_ context.Context, _ resource.LegacyManaged) error { return nil }),
+				fs: func() afero.Afero {
+					fs := afero.Afero{Fs: afero.NewMemMapFs()}
+					// Pre-create .terraform.lock.hcl to simulate successful tofu init
+					lockFileContent := `# This file is maintained automatically by "tofu init".
+provider "registry.opentofu.org/hashicorp/aws" {
+  version = "5.0.0"
+}
+`
+					fs.WriteFile(filepath.Join(tfDir, string(uid), ".terraform.lock.hcl"), []byte(lockFileContent), 0644)
+					return fs
+				}(),
+				tofu: func(_ string, _ bool, _ bool, _ logging.Logger, _ ...string) tofuclient {
+					return &MockTofu{
+						MockInit:             func(ctx context.Context, o ...opentofu.InitOption) error { return nil },
+						MockGenerateChecksum: func(ctx context.Context) (string, error) { return tfChecksum, nil },
+						MockWorkspace:        func(_ context.Context, _ string) error { return nil },
+					}
+				},
+			},
+			args: args{
+				mg: &v1beta1.Workspace{
+					ObjectMeta: metav1.ObjectMeta{UID: uid},
+					Spec: v1beta1.WorkspaceSpec{
+						ForProvider: v1beta1.WorkspaceParameters{
+							Source:           v1beta1.ModuleSourceRemote,
+							Module:           "git::https://github.com/org/repo?ref=v1.0.0",
+							RemotePullPolicy: func() *v1beta1.RemotePullPolicy { p := v1beta1.RemotePullPolicyIfNotPresent; return &p }(),
+						},
+						ResourceSpec: xpv1.ResourceSpec{
+							ProviderConfigReference: &xpv1.Reference{},
+						},
+					},
+					Status: v1beta1.WorkspaceStatus{
+						AtProvider: v1beta1.WorkspaceObservation{
+							RemoteSource: "git::https://github.com/org/repo?ref=v1.0.0",
+						},
+					},
+				},
+			},
+			want: nil,
+		},
+		"RemotePullPolicyIfNotPresentSkipsDownloadWithEntrypoint": {
+			reason: "Remote module with IfNotPresent policy should skip download when .terraform.lock.hcl exists in entrypoint subdirectory",
+			fields: fields{
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(nil),
+				},
+				usage: clients.LegacyTrackerFn(func(_ context.Context, _ resource.LegacyManaged) error { return nil }),
+				fs: func() afero.Afero {
+					fs := afero.Afero{Fs: afero.NewMemMapFs()}
+					lockFileContent := `# This file is maintained automatically by "tofu init".
+provider "registry.opentofu.org/hashicorp/aws" {
+  version = "5.0.0"
+}
+`
+					fs.WriteFile(filepath.Join(tfDir, string(uid), "examples/aws", ".terraform.lock.hcl"), []byte(lockFileContent), 0644)
+					return fs
+				}(),
+				tofu: func(_ string, _ bool, _ bool, _ logging.Logger, _ ...string) tofuclient {
+					return &MockTofu{
+						MockInit:             func(ctx context.Context, o ...opentofu.InitOption) error { return nil },
+						MockGenerateChecksum: func(ctx context.Context) (string, error) { return tfChecksum, nil },
+						MockWorkspace:        func(_ context.Context, _ string) error { return nil },
+					}
+				},
+			},
+			args: args{
+				mg: &v1beta1.Workspace{
+					ObjectMeta: metav1.ObjectMeta{UID: uid},
+					Spec: v1beta1.WorkspaceSpec{
+						ForProvider: v1beta1.WorkspaceParameters{
+							Source:           v1beta1.ModuleSourceRemote,
+							Module:           "git::https://github.com/org/repo?ref=v1.0.0",
+							Entrypoint:       "examples/aws",
+							RemotePullPolicy: func() *v1beta1.RemotePullPolicy { p := v1beta1.RemotePullPolicyIfNotPresent; return &p }(),
+						},
+						ResourceSpec: xpv1.ResourceSpec{
+							ProviderConfigReference: &xpv1.Reference{},
+						},
+					},
+					Status: v1beta1.WorkspaceStatus{
+						AtProvider: v1beta1.WorkspaceObservation{
+							RemoteSource: "git::https://github.com/org/repo?ref=v1.0.0",
+						},
+					},
+				},
+			},
+			want: nil,
+		},
+		"RemotePullPolicyIfNotPresentAttemptsDownloadWithEntrypointWrongLocation": {
+			reason: "Remote module with IfNotPresent and entrypoint should attempt download when .terraform.lock.hcl is in base dir (not entrypoint)",
+			fields: fields{
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(nil),
+				},
+				usage: clients.LegacyTrackerFn(func(_ context.Context, _ resource.LegacyManaged) error { return nil }),
+				fs: func() afero.Afero {
+					fs := afero.Afero{Fs: afero.NewMemMapFs()}
+					// Create .terraform.lock.hcl in the WRONG location (base dir instead of entrypoint subdir)
+					lockFileContent := `# This file is maintained automatically by "tofu init".
+provider "registry.opentofu.org/hashicorp/aws" {
+  version = "5.0.0"
+}
+`
+					fs.WriteFile(filepath.Join(tfDir, string(uid), ".terraform.lock.hcl"), []byte(lockFileContent), 0644)
+					return fs
+				}(),
+				tofu: func(_ string, _ bool, _ bool, _ logging.Logger, _ ...string) tofuclient {
+					return &MockTofu{
+						MockInit:             func(ctx context.Context, o ...opentofu.InitOption) error { return nil },
+						MockGenerateChecksum: func(ctx context.Context) (string, error) { return tfChecksum, nil },
+						MockWorkspace:        func(_ context.Context, _ string) error { return nil },
+					}
+				},
+			},
+			args: args{
+				mg: &v1beta1.Workspace{
+					ObjectMeta: metav1.ObjectMeta{UID: uid},
+					Spec: v1beta1.WorkspaceSpec{
+						ForProvider: v1beta1.WorkspaceParameters{
+							Source:           v1beta1.ModuleSourceRemote,
+							Module:           "git::https://github.com/org/repo?ref=v1.0.0",
+							Entrypoint:       "examples/aws", // Tofu will run in subdirectory
+							RemotePullPolicy: func() *v1beta1.RemotePullPolicy { p := v1beta1.RemotePullPolicyIfNotPresent; return &p }(),
+						},
+						ResourceSpec: xpv1.ResourceSpec{
+							ProviderConfigReference: &xpv1.Reference{},
+						},
+					},
+					Status: v1beta1.WorkspaceStatus{
+						AtProvider: v1beta1.WorkspaceObservation{
+							RemoteSource: "git::https://github.com/org/repo?ref=v1.0.0",
+						},
+					},
+				},
+			},
+			want: nil, // Handled by special case logic
+		},
+		"RemotePullPolicyIfNotPresentAttemptsDownloadWhenURLChanged": {
+			reason: "Remote module with IfNotPresent policy should attempt download when URL changes",
+			fields: fields{
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(nil),
+				},
+				usage: clients.LegacyTrackerFn(func(_ context.Context, _ resource.LegacyManaged) error { return nil }),
+				fs: func() afero.Afero {
+					fs := afero.Afero{Fs: afero.NewMemMapFs()}
+					lockFileContent := `# This file is maintained automatically by "tofu init".
+provider "registry.opentofu.org/hashicorp/aws" {
+  version = "5.0.0"
+}
+`
+					fs.WriteFile(filepath.Join(tfDir, string(uid), ".terraform.lock.hcl"), []byte(lockFileContent), 0644)
+					return fs
+				}(),
+				tofu: func(_ string, _ bool, _ bool, _ logging.Logger, _ ...string) tofuclient {
+					return &MockTofu{
+						MockInit:             func(ctx context.Context, o ...opentofu.InitOption) error { return nil },
+						MockGenerateChecksum: func(ctx context.Context) (string, error) { return tfChecksum, nil },
+						MockWorkspace:        func(_ context.Context, _ string) error { return nil },
+					}
+				},
+			},
+			args: args{
+				mg: &v1beta1.Workspace{
+					ObjectMeta: metav1.ObjectMeta{UID: uid},
+					Spec: v1beta1.WorkspaceSpec{
+						ForProvider: v1beta1.WorkspaceParameters{
+							Source:           v1beta1.ModuleSourceRemote,
+							Module:           "git::https://github.com/org/repo?ref=v2.0.0", // Changed
+							RemotePullPolicy: func() *v1beta1.RemotePullPolicy { p := v1beta1.RemotePullPolicyIfNotPresent; return &p }(),
+						},
+						ResourceSpec: xpv1.ResourceSpec{
+							ProviderConfigReference: &xpv1.Reference{},
+						},
+					},
+					Status: v1beta1.WorkspaceStatus{
+						AtProvider: v1beta1.WorkspaceObservation{
+							RemoteSource: "git::https://github.com/org/repo?ref=v1.0.0", // Old
+						},
+					},
+				},
+			},
+			want: nil, // Handled by special case logic
+		},
+		"RemotePullPolicyIfNotPresentAttemptsDownloadWhenNotPresent": {
+			reason: "Remote module with IfNotPresent policy should attempt download when .terraform.lock.hcl missing",
+			fields: fields{
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(nil),
+				},
+				usage: clients.LegacyTrackerFn(func(_ context.Context, _ resource.LegacyManaged) error { return nil }),
+				fs:    afero.Afero{Fs: afero.NewMemMapFs()}, // No .terraform.lock.hcl file
+				tofu: func(_ string, _ bool, _ bool, _ logging.Logger, _ ...string) tofuclient {
+					return &MockTofu{
+						MockInit:             func(ctx context.Context, o ...opentofu.InitOption) error { return nil },
+						MockGenerateChecksum: func(ctx context.Context) (string, error) { return tfChecksum, nil },
+						MockWorkspace:        func(_ context.Context, _ string) error { return nil },
+					}
+				},
+			},
+			args: args{
+				mg: &v1beta1.Workspace{
+					ObjectMeta: metav1.ObjectMeta{UID: uid},
+					Spec: v1beta1.WorkspaceSpec{
+						ForProvider: v1beta1.WorkspaceParameters{
+							Source:           v1beta1.ModuleSourceRemote,
+							Module:           "git::https://github.com/org/repo?ref=v1.0.0",
+							RemotePullPolicy: func() *v1beta1.RemotePullPolicy { p := v1beta1.RemotePullPolicyIfNotPresent; return &p }(),
+						},
+						ResourceSpec: xpv1.ResourceSpec{
+							ProviderConfigReference: &xpv1.Reference{},
+						},
+					},
+				},
+			},
+			want: nil, // Handled by special case logic
+		},
 		"SuccessUsingBackendFile": {
 			reason: "We should not return an error when we successfully 'connect' to tofu using a Backend file",
 			fields: fields{
@@ -760,8 +986,19 @@ func TestConnect(t *testing.T) {
 				logger: logging.NewNopLogger(),
 			}
 			_, err := c.Connect(tc.args.ctx, tc.args.mg)
-			if diff := cmp.Diff(tc.want, err, test.EquateErrors()); diff != "" {
-				t.Errorf("\n%s\ne.Connect(...): -want error, +got error:\n%s\n", tc.reason, diff)
+
+			// Special handling for RemotePullPolicy download attempt tests
+			// These tests verify download was attempted by checking for errRemoteModule
+			if strings.Contains(name, "AttemptsDownload") {
+				if err == nil {
+					t.Errorf("\n%s\ne.Connect(...): expected error (download attempt), got nil\n", tc.reason)
+				} else if !strings.Contains(err.Error(), errRemoteModule) {
+					t.Errorf("\n%s\ne.Connect(...): expected error containing %q, got: %v\n", tc.reason, errRemoteModule, err)
+				}
+			} else {
+				if diff := cmp.Diff(tc.want, err, test.EquateErrors()); diff != "" {
+					t.Errorf("\n%s\ne.Connect(...): -want error, +got error:\n%s\n", tc.reason, diff)
+				}
 			}
 		})
 	}
@@ -1082,6 +1319,56 @@ func TestObserve(t *testing.T) {
 				},
 			},
 		},
+		"RemoteSourcePreserved": {
+			reason: "RemoteSource field set in Connect should be preserved through Observe call",
+			fields: fields{
+				tofu: &MockTofu{
+					MockDiff:             func(ctx context.Context, o ...opentofu.Option) (bool, error) { return false, nil },
+					MockGenerateChecksum: func(ctx context.Context) (string, error) { return tfChecksum, nil },
+					MockResources: func(ctx context.Context) ([]string, error) {
+						return []string{"cool_resource.very"}, nil
+					},
+					MockOutputs: func(ctx context.Context) ([]opentofu.Output, error) {
+						return []opentofu.Output{
+							{Name: "string", Type: opentofu.OutputTypeString, Sensitive: false},
+						}, nil
+					},
+				},
+			},
+			args: args{
+				mg: &v1beta1.Workspace{
+					Spec: v1beta1.WorkspaceSpec{
+						ForProvider: v1beta1.WorkspaceParameters{
+							Source: v1beta1.ModuleSourceRemote,
+							Module: "git::https://github.com/org/repo?ref=v1.0.0",
+						},
+					},
+					Status: v1beta1.WorkspaceStatus{
+						AtProvider: v1beta1.WorkspaceObservation{
+							// Simulating remoteSource was set in Connect
+							RemoteSource: "git::https://github.com/org/repo?ref=v1.0.0",
+						},
+					},
+				},
+			},
+			want: want{
+				o: managed.ExternalObservation{
+					ResourceExists:   true,
+					ResourceUpToDate: true,
+					ConnectionDetails: managed.ConnectionDetails{
+						"string": []byte{},
+					},
+				},
+				wo: v1beta1.WorkspaceObservation{
+					Checksum: tfChecksum,
+					Outputs: map[string]extensionsV1.JSON{
+						"string": {Raw: []byte("null")},
+					},
+					// RemoteSource must be preserved
+					RemoteSource: "git::https://github.com/org/repo?ref=v1.0.0",
+				},
+			},
+		},
 		"WorkspaceExistsOnlyOutputs": {
 			reason: "A workspace with only outputs and no resources should set ResourceExists to true",
 			fields: fields{
@@ -1342,6 +1629,7 @@ func TestCreate(t *testing.T) {
 					},
 				},
 				wo: v1beta1.WorkspaceObservation{
+					Checksum: tfChecksum,
 					Outputs: map[string]extensionsV1.JSON{
 						"object": {Raw: []byte("null")},
 					},
