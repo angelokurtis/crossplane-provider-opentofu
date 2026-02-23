@@ -1,0 +1,31 @@
+apiVersion: opentofu.m.upbound.io/v1beta1
+kind: Workspace
+metadata:
+  name: example-iam-with-entrypoint-outputs
+  namespace: upbound-system
+  annotations:
+    meta.upbound.io/example-id: opentofu/v1beta1/workspace
+spec:
+  forProvider:
+    # Use the well-known AWS VPC module
+    source: Remote
+    module: git::https://github.com/ytsarev/provider-terraform-test-module.git?ref=main
+
+    # Use one of the example subdirectories as entrypoint
+    # This tests that .terraform directory is checked in the correct location
+    entrypoint: iam
+
+    # Set IfNotPresent to avoid re-downloading on every reconciliation
+    remotePullPolicy: IfNotPresent
+
+    # Provide minimal required variables for the example
+    vars:
+    - key: iamRole
+      value: test-remote-pull-policy-outputs
+
+  providerConfigRef:
+    kind: ClusterProviderConfig
+    name: default
+
+  writeConnectionSecretToRef:
+    name: example-iam-entrypoint-outputs-test
