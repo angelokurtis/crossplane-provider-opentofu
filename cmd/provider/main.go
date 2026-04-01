@@ -178,7 +178,6 @@ func main() {
 	kingpin.FatalIfError(gc.Setup(mgr, workspace.GetTfDir(), log), "cannot setup Workspace garbage collector controller")
 	canSafeStart, err := canWatchCRD(ctx, mgr)
 	kingpin.FatalIfError(err, "SafeStart precheck failed")
-
 	if canSafeStart {
 		crdGate := new(gate.Gate[schema.GroupVersionKind])
 		clusterOpts.Gate = crdGate
@@ -191,7 +190,6 @@ func main() {
 		kingpin.FatalIfError(clustercontroller.Setup(mgr, clusterOpts, *timeout, *pollJitter), "Cannot setup cluster-scoped Workspace controllers")
 		kingpin.FatalIfError(namespacedcontroller.Setup(mgr, namespacedOpts, *timeout, *pollJitter), "Cannot setup namespaced Workspace controllers")
 	}
-
 	kingpin.FatalIfError(mgr.Start(ctrl.SetupSignalHandler()), "Cannot start controller manager")
 }
 
@@ -206,7 +204,6 @@ func canWatchCRD(ctx context.Context, mgr manager.Manager) (bool, error) {
 	if err := authv1.AddToScheme(mgr.GetScheme()); err != nil {
 		return false, err
 	}
-
 	verbs := []string{"get", "list", "watch"}
 	for _, verb := range verbs {
 		sar := &authv1.SelfSubjectAccessReview{
@@ -221,11 +218,9 @@ func canWatchCRD(ctx context.Context, mgr manager.Manager) (bool, error) {
 		if err := mgr.GetClient().Create(ctx, sar); err != nil {
 			return false, errors.Wrapf(err, "unable to perform RBAC check for verb %s on CustomResourceDefinitions", verbs)
 		}
-
 		if !sar.Status.Allowed {
 			return false, nil
 		}
 	}
-
 	return true, nil
 }
