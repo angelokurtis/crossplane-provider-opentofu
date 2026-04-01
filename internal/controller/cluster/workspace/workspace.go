@@ -40,7 +40,6 @@ import (
 	"github.com/upbound/provider-opentofu/internal/features"
 	"github.com/upbound/provider-opentofu/internal/opentofu"
 	"github.com/upbound/provider-opentofu/internal/otel"
-	"github.com/upbound/provider-opentofu/internal/workdir"
 )
 
 const (
