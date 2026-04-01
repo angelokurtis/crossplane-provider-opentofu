@@ -25,3 +25,11 @@ crossplane xpkg build \
   -o provider-opentofu.xpkg
 
 crossplane xpkg push "$DEST_IMAGE" -f provider-opentofu.xpkg
+
+gcrane cp \
+  "$SOURCE_IMAGE" \
+  "docker.io/kurtis/crossplane-opentofu-provider:vms-${COMMIT_SHA}"
+
+gcrane cp \
+  "$SOURCE_IMAGE" \
+  "docker.io/kurtis/crossplane-opentofu-provider:vpc-${COMMIT_SHA}"
