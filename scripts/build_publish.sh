@@ -15,7 +15,7 @@ SOURCE_IMAGE="build-94c9a9c2/provider-opentofu-amd64:latest"
 
 # Use current commit SHA as tag
 COMMIT_SHA="$(git rev-parse --short HEAD)"
-DEST_IMAGE="kurtis/crossplane-opentofu-provider:${COMMIT_SHA}"
+DEST_IMAGE="docker.io/kurtis/crossplane-opentofu-provider:${COMMIT_SHA}"
 
 docker tag "$SOURCE_IMAGE" "$DEST_IMAGE"
 
