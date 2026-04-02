@@ -25,8 +25,10 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/angelokurtis/go-otel/span"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/logging"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Error strings.
@@ -174,6 +176,9 @@ var rwmutex = &sync.RWMutex{}
 // Init initializes a tofu configuration.
 func (h Harness) Init(ctx context.Context, o ...InitOption) error {
 	args := append([]string{"init", "-input=false", "-no-color"}, InitArgsToString(o)...)
+	span.Attributes(ctx,
+		attribute.String("command", fmt.Sprintf("%s %s", h.Path, strings.Join(args, " "))),
+	)
 	cmd := exec.Command(h.Path, args...) //nolint:gosec
 	cmd.Dir = h.Dir
 	for _, e := range os.Environ() {
@@ -203,7 +208,11 @@ func (h Harness) Init(ctx context.Context, o ...InitOption) error {
 // but isn't is deemed invalid. Attempts to initialise an invalid configuration
 // will result in errors, which are not available in a machine readable format.
 func (h Harness) Validate(ctx context.Context) error {
-	cmd := exec.Command(h.Path, "validate", "-json") //nolint:gosec
+	args := []string{"validate", "-json"}
+	span.Attributes(ctx,
+		attribute.String("command", fmt.Sprintf("%s %s", h.Path, strings.Join(args, " "))),
+	)
+	cmd := exec.Command(h.Path, args...) //nolint:gosec
 	cmd.Dir = h.Dir
 	if len(h.Envs) > 0 {
 		cmd.Env = append(os.Environ(), h.Envs...)
@@ -238,7 +247,11 @@ func (h Harness) Validate(ctx context.Context) error {
 // Workspace selects the named tofu workspace. The workspace will be
 // created if it does not exist.
 func (h Harness) Workspace(ctx context.Context, name string) error {
-	cmd := exec.Command(h.Path, "workspace", "select", "-no-color", name) //nolint:gosec
+	args := []string{"workspace", "select", "-no-color", name}
+	span.Attributes(ctx,
+		attribute.String("command", fmt.Sprintf("%s %s", h.Path, strings.Join(args, " "))),
+	)
+	cmd := exec.Command(h.Path, args...) //nolint:gosec
 	cmd.Dir = h.Dir
 	if len(h.Envs) > 0 {
 		cmd.Env = append(os.Environ(), h.Envs...)
@@ -252,7 +265,11 @@ func (h Harness) Workspace(ctx context.Context, name string) error {
 	// We weren't able to select a workspace. We assume this was because the
 	// workspace doesn't exist, which causes tofu to return non-zero. This
 	// is somewhat optimistic, but it shouldn't hurt to try.
-	cmd = exec.Command(h.Path, "workspace", "new", "-no-color", name) //nolint:gosec
+	args = []string{"workspace", "new", "-no-color", name}
+	span.Attributes(ctx,
+		attribute.String("command", fmt.Sprintf("%s %s", h.Path, strings.Join(args, " "))),
+	)
+	cmd = exec.Command(h.Path, args...) //nolint:gosec
 	cmd.Dir = h.Dir
 	if len(h.Envs) > 0 {
 		cmd.Env = append(os.Environ(), h.Envs...)
@@ -269,7 +286,11 @@ func (h Harness) Workspace(ctx context.Context, name string) error {
 
 // DeleteCurrentWorkspace deletes the current tofu workspace if it is not the default.
 func (h Harness) DeleteCurrentWorkspace(ctx context.Context) error {
-	cmd := exec.Command(h.Path, "workspace", "show", "-no-color") //nolint:gosec
+	args := []string{"workspace", "show", "-no-color"}
+	span.Attributes(ctx,
+		attribute.String("command", fmt.Sprintf("%s %s", h.Path, strings.Join(args, " "))),
+	)
+	cmd := exec.Command(h.Path, args...) //nolint:gosec
 	cmd.Dir = h.Dir
 	if len(h.Envs) > 0 {
 		cmd.Env = append(os.Environ(), h.Envs...)
@@ -399,7 +420,11 @@ func (o Output) JSONValue() ([]byte, error) {
 
 // Outputs extracts outputs from Terraform state.
 func (h Harness) Outputs(ctx context.Context) ([]Output, error) {
-	cmd := exec.Command(h.Path, "output", "-json") //nolint:gosec
+	args := []string{"output", "-json"}
+	span.Attributes(ctx,
+		attribute.String("command", fmt.Sprintf("%s %s", h.Path, strings.Join(args, " "))),
+	)
+	cmd := exec.Command(h.Path, args...) //nolint:gosec
 	cmd.Dir = h.Dir
 	if len(h.Envs) > 0 {
 		cmd.Env = append(os.Environ(), h.Envs...)
@@ -459,7 +484,11 @@ func (h Harness) Outputs(ctx context.Context) ([]Output, error) {
 
 // Resources returns a list of resources in the Terraform state.
 func (h Harness) Resources(ctx context.Context) ([]string, error) {
-	cmd := exec.Command(h.Path, "state", "list") //nolint:gosec
+	args := []string{"state", "list"}
+	span.Attributes(ctx,
+		attribute.String("command", fmt.Sprintf("%s %s", h.Path, strings.Join(args, " "))),
+	)
+	cmd := exec.Command(h.Path, args...) //nolint:gosec
 	cmd.Dir = h.Dir
 	if len(h.Envs) > 0 {
 		cmd.Env = append(os.Environ(), h.Envs...)
@@ -545,6 +574,9 @@ func (h Harness) Diff(ctx context.Context, o ...Option) (bool, error) {
 	}
 
 	args := append([]string{"plan", "-no-color", "-input=false", "-detailed-exitcode", "-lock=false"}, ao.args...)
+	span.Attributes(ctx,
+		attribute.String("command", fmt.Sprintf("%s %s", h.Path, strings.Join(args, " "))),
+	)
 	cmd := exec.Command(h.Path, args...) //nolint:gosec
 	cmd.Dir = h.Dir
 	if len(h.Envs) > 0 {
@@ -590,6 +622,9 @@ func (h Harness) Apply(ctx context.Context, o ...Option) error {
 	}
 
 	args := append([]string{"apply", "-no-color", "-auto-approve", "-input=false"}, ao.args...)
+	span.Attributes(ctx,
+		attribute.String("command", fmt.Sprintf("%s %s", h.Path, strings.Join(args, " "))),
+	)
 	cmd := exec.Command(h.Path, args...) //nolint:gosec
 	cmd.Dir = h.Dir
 	if len(h.Envs) > 0 {
@@ -635,6 +670,9 @@ func (h Harness) Destroy(ctx context.Context, o ...Option) error {
 	}
 
 	args := append([]string{"destroy", "-no-color", "-auto-approve", "-input=false"}, do.args...)
+	span.Attributes(ctx,
+		attribute.String("command", fmt.Sprintf("%s %s", h.Path, strings.Join(args, " "))),
+	)
 	cmd := exec.Command(h.Path, args...) //nolint:gosec
 	cmd.Dir = h.Dir
 	if len(h.Envs) > 0 {
